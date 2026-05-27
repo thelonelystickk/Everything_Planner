@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <title>Everything Planner</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0a0a0a;
+      color: white;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 20px;
+    }
+
+    .glass {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="min-h-screen p-6">
+
+    <div class="max-w-5xl mx-auto">
+
+      <div class="flex flex-col md:flex-row gap-4 mb-6">
+
+        <input
+          id="folderInput"
+          type="text"
+          placeholder="New folder name..."
+          class="flex-1 p-3 rounded-2xl bg-neutral-900 border border-neutral-700 outline-none"
+        />
+
+        <button
+          onclick="addFolder()"
+          class="px-5 py-3 rounded-2xl bg-blue-700 hover:bg-blue-600 transition"
+        >
+          Add Folder
+        </button>
+
+      </div>
+
+      <h1 class="text-5xl font-bold mb-8">
+        Everything Planner
+      </h1>
+
+      <div
+        id="folders"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+      ></div>
+
+      <div class="mt-12">
+
+        <div class="flex flex-col md:flex-row gap-4 mb-5">
+
+          <input
+            id="todoInput"
+            type="text"
+            placeholder="New task..."
+            class="flex-1 p-3 rounded-2xl bg-neutral-900 border border-neutral-700 outline-none"
+          />
+
+          <button
+            onclick="addTodo()"
+            class="px-5 py-3 rounded-2xl bg-green-700 hover:bg-green-600 transition"
+          >
+            Add Task
+          </button>
+
+        </div>
+
+        <h2 class="text-3xl font-semibold mb-5">
+          To-Do List
+        </h2>
+
+        <div id="todoList"></div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    let folders =
+      JSON.parse(localStorage.getItem("folders")) || [];
+
+    let todos =
+      JSON.parse(localStorage.getItem("todos")) || [];
+
+    function saveData() {
+      localStorage.setItem(
+        "folders",
+        JSON.stringify(folders)
+      );
+
+      localStorage.setItem(
+        "todos",
+        JSON.stringify(todos)
+      );
+    }
+
+    function uid() {
+      return Math.random()
+        .toString(36)
+        .substring(2);
+    }
+
+    function addFolder() {
+      const input =
+        document.getElementById("folderInput");
+
+      const name = input.value.trim();
+
+      if (!name) return;
+
+      folders.push({
+        id: uid(),
+        name,
+        notes: []
+      });
+
+      input.value = "";
+
+      saveData();
+
+      renderFolders();
+    }
+
+    function deleteFolder(id) {
+      folders = folders.filter(
+        (f) => f.id !== id
+      );
+
+      saveData();
+
+      renderFolders();
+    }
+
+    function renameFolder(id) {
+      const folder = folders.find(
+        (f) => f.id === id
+      );
+
+      const newName = prompt(
+        "Rename folder",
+        folder.name
+      );
+
+      if (!newName) return;
+
+      folder.name = newName;
+
+      saveData();
+
+      renderFolders();
+    }
+
+    function addNote(folderId) {
+      const input = document.getElementById(
+        "note-" + folderId
+      );
+
+      const text = input.value.trim();
+
+      if (!text) return;
+
+      const folder = folders.find(
+        (f) => f.id === folderId
+      );
+
+      folder.notes.push({
+        id: uid(),
+        text
+      });
+
+      input.value = "";
+
+      saveData();
+
+      renderFolders();
+    }
+
+    function deleteNote(folderId, noteId) {
+      const folder = folders.find(
+        (f) => f.id === folderId
+      );
+
+      folder.notes = folder.notes.filter(
+        (n) => n.id !== noteId
+      );
+
+      saveData();
+
+      renderFolders();
+    }
+
+    function renderFolders() {
+      const container =
+        document.getElementById("folders");
+
+      container.innerHTML = "";
+
+      folders.forEach((folder) => {
+        const div = document.createElement("div");
+
+        div.className =
+          "glass rounded-3xl p-5 shadow-lg";
+
+        div.innerHTML = `
+          <div class="flex justify-between items-center mb-4">
+
+            <h3 class="text-2xl font-bold">
+              📁 ${folder.name}
+            </h3>
+
+            <div class="flex gap-2">
+
+              <button
+                onclick="renameFolder('${folder.id}')"
+                class="hover:text-yellow-400 text-xl"
+              >
+                ✏️
+              </button>
+
+              <button
+                onclick="deleteFolder('${folder.id}')"
+                class="hover:text-red-400 text-xl"
+              >
+                🗑️
+              </button>
+
+            </div>
+
+          </div>
+
+          <div class="flex gap-2 mb-4">
+
+            <input
+              id="note-${folder.id}"
+              type="text"
+              placeholder="Write note..."
+              class="flex-1 p-2 rounded-xl bg-neutral-900 border border-neutral-700 outline-none"
+            />
+
+            <button
+              onclick="addNote('${folder.id}')"
+              class="px-4 rounded-xl bg-blue-700 hover:bg-blue-600"
+            >
+              Add
+            </button>
+
+          </div>
+
+          <div class="space-y-2">
+            ${folder.notes.map(note => `
+              <div class="bg-neutral-900 border border-neutral-700 rounded-xl p-3 flex justify-between items-center">
+
+                <span>
+                  📝 ${note.text}
+                </span>
+
+                <button
+                  onclick="deleteNote('${folder.id}','${note.id}')"
+                  class="hover:text-red-400"
+                >
+                  🗑️
+                </button>
+
+              </div>
+            `).join("")}
+          </div>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    function addTodo() {
+      const input =
+        document.getElementById("todoInput");
+
+      const text = input.value.trim();
+
+      if (!text) return;
+
+      todos.push({
+        id: uid(),
+        text,
+        done: false,
+        created: new Date().toLocaleString()
+      });
+
+      input.value = "";
+
+      saveData();
+
+      renderTodos();
+    }
+
+    function toggleTodo(id) {
+      const todo = todos.find(
+        (t) => t.id === id
+      );
+
+      todo.done = !todo.done;
+
+      saveData();
+
+      renderTodos();
+    }
+
+    function deleteTodo(id) {
+      todos = todos.filter(
+        (t) => t.id !== id
+      );
+
+      saveData();
+
+      renderTodos();
+    }
+
+    function renderTodos() {
+      const container =
+        document.getElementById("todoList");
+
+      container.innerHTML = "";
+
+      todos.forEach((todo) => {
+        const div = document.createElement("div");
+
+        div.className =
+          "p-4 rounded-2xl border mb-3 flex justify-between items-center transition " +
+          (todo.done
+            ? "bg-green-700 border-green-600"
+            : "bg-neutral-900 border-neutral-700");
+
+        div.innerHTML = `
+          <div
+            class="flex-1 cursor-pointer"
+            onclick="toggleTodo('${todo.id}')"
+          >
+            <div class="${
+              todo.done ? "line-through" : ""
+            }">
+              ${todo.text}
+            </div>
+
+            <div class="text-xs opacity-60 mt-1">
+              ${todo.created}
+            </div>
+          </div>
+
+          <button
+            onclick="deleteTodo('${todo.id}')"
+            class="hover:text-red-400 ml-3"
+          >
+            🗑️
+          </button>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    document
+      .getElementById("todoInput")
+      .addEventListener("keypress", (e) => {
+        if (e.key === "Enter") addTodo();
+      });
+
+    document
+      .getElementById("folderInput")
+      .addEventListener("keypress", (e) => {
+        if (e.key === "Enter") addFolder();
+      });
+
+    renderFolders();
+    renderTodos();
+  </script>
+
+</body>
+</html>
